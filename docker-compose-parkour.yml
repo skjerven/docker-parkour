@@ -1,0 +1,55 @@
+version: '3'
+services:
+
+  parkour-web:
+    image: dockerparkour_parkour-web:latest
+    command: /usr/local/bin/gunicorn wui.wsgi:application -w 2 -b 0.0.0.0:8000 
+    container_name: parkour-web
+    restart: always
+    build: ./web
+    depends_on:
+      - parkour-postgres
+    ports:
+      - "8888:8888"
+    expose:
+      - "8000"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@parkour-postgres:5432/${POSTGRES_DB}
+      LETSENCRYPT_HOST: ${PARKOUR_HOST}
+      LETSENCRYPT_EMAIL: ${EMAIL}
+      VIRTUAL_HOST: ${PARKOUR_HOST}
+      VIRTUAL_PORT: 8000
+    volumes:
+      - usr_src_app_media:/usr/src/app/media
+      - usr_src_app_staticfiles:/usr/src/app/staticfiles
+    networks:
+      - default
+      - service
+ 
+  parkour-postgres:
+    image: postgres:9.5
+    container_name: parkour-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    networks:
+      - service
+
+volumes:
+  pgdata:
+  usr_src_app_media:
+  usr_src_app_staticfiles:
+
+networks:
+  default:
+    external:
+      name: ${NETWORK:-webproxy}
+  service:
+    external:
+      name: ${SERVICE_NETWORK:-webservices}
